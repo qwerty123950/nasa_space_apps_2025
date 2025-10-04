@@ -1,0 +1,1 @@
+Include the NASA non-endorsement text in the app footer and in all data downloads. Respect dataset licenses and Earthdata Login terms.

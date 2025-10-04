@@ -1,0 +1,23 @@
+[project]
+name = "weather-likelihood-backend"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "xarray",
+    "netcdf4",
+    "h5netcdf",
+    "numpy",
+    "pandas",
+    "shapely",
+    "pyproj",
+    "rtree",
+    "rioxarray",
+    "pydantic",
+    "requests",
+    "requests-cache",
+    "httpx",
+    "aiofiles",
+    "geographiclib"
+]

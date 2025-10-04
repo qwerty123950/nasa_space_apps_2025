@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+api:
+build:
+context: .
+dockerfile: ./backend.Dockerfile
+ports:
+- "8000:8000"
+volumes:
+- ../data-cache:/app/data-cache
+- ~/.netrc:/root/.netrc:ro
+web:
+build:
+context: .
+dockerfile: ./frontend.Dockerfile
+ports:
+- "5173:80"

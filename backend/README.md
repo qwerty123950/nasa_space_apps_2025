@@ -1,0 +1,1 @@
+Backend (FastAPI) for Weather Likelihood. Requires Earthdata Login with ~/.netrc (Linux/macOS) or %USERPROFILE%\.netrc (Windows).

@@ -1,0 +1,69 @@
+Python
+
+pycache/
+.pyc
+.env
+.venv/
+.env.
+dist/
+build/
+.eggs/
+*.egg-info
+
+Node
+
+node_modules/
+dist/
+.vite/
+.npm/
+.pnpm-store/
+
+OS
+
+.DS_Store
+Thumbs.db
+
+Notebooks
+
+.ipynb_checkpoints/
+
+Project
+
+data-cache/
+.cache/
+.secrets/
+*.local.json
+
+File: .editorconfig
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
+File: .gitattributes
+
+text=auto eol=lf
+File: .pre-commit-config.yaml
+repos:
+
+repo: https://github.com/psf/black
+rev: 24.8.0
+hooks:
+id: black
+repo: https://github.com/charliermarsh/ruff-pre-commit
+rev: v0.6.9
+hooks:
+id: ruff
+repo: https://github.com/pre-commit/pre-commit-hooks
+rev: v4.6.0
+hooks:
+id: end-of-file-fixer
+id: trailing-whitespace
