@@ -6,6 +6,7 @@ import io
 import tempfile
 from functools import lru_cache
 import requests # Still need this for exception handling
+import numpy as np
 
 # Import our new, powerful authenticator
 from nasa_auth import create_authenticated_session
@@ -60,7 +61,7 @@ def get_nasa_data(latitude: float, longitude: float, month: int, day: int, varia
             
             # Use our powerful session to download the file content.
             # This session will automatically handle the login redirects.
-            response = session.get(url, timeout=30)
+            response = session.get(url, timeout=(10, 120))
             response.raise_for_status()
 
             # Load via a closed temporary file (Windows: netcdf4 cannot re-open an open NamedTemporaryFile)
@@ -70,9 +71,47 @@ def get_nasa_data(latitude: float, longitude: float, month: int, day: int, varia
                     tmpf.write(response.content)
                     tmp_path = tmpf.name
                 with xr.open_dataset(tmp_path, engine='netcdf4') as ds:
-                    data_point = ds[nasa_var_name].sel(lat=latitude, lon=longitude, method="nearest").item()
-                    converted_value = unit_conversion_func(data_point)
-                    historical_values.append(converted_value)
+                    # Select nearest grid cell once
+                    lat_sel = latitude
+                    lon_sel = longitude
+
+                    if variable == "max_temp_c":
+                        series = ds["T2M"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        val_k = float(series.max(dim="time").item())
+                        converted_value = val_k - 273.15
+
+                    elif variable == "min_temp_c":
+                        series = ds["T2M"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        val_k = float(series.min(dim="time").item())
+                        converted_value = val_k - 273.15
+
+                    elif variable == "precipitation_mm":
+                        if "PRECTOTCORR" not in ds:
+                            raise KeyError("PRECTOTCORR not found in dataset")
+                        series = ds["PRECTOTCORR"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        # Daily total (kg/m^2/s == mm/s) summed over ~24 hourly steps
+                        converted_value = float(series.sum(dim="time").item()) * 3600.0
+
+                    elif variable == "wind_speed_kph":
+                        if "U10M" not in ds or "V10M" not in ds:
+                            raise KeyError("U10M/V10M not found in dataset")
+                        u = ds["U10M"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        v = ds["V10M"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        speed = np.sqrt(u**2 + v**2)
+                        val_ms = float(speed.mean(dim="time").item())
+                        converted_value = val_ms * 3.6
+
+                    elif variable == "dust_ug_m3":
+                        if "DUSMASS" not in ds:
+                            raise KeyError("DUSMASS not found in dataset")
+                        series = ds["DUSMASS"].sel(lat=lat_sel, lon=lon_sel, method="nearest")
+                        converted_value = float(series.mean(dim="time").item()) * 1e9
+
+                    else:
+                        # Unknown variable key
+                        continue
+
+                    historical_values.append(float(converted_value))
                     print(f"  + Successfully processed data for {year}")
             finally:
                 if tmp_path:

@@ -3,6 +3,11 @@
 import requests
 import netrc
 import os
+from requests.adapters import HTTPAdapter
+try:
+    from urllib3.util.retry import Retry
+except Exception:
+    Retry = None
 
 class NasaAuth(requests.auth.AuthBase):
     """
@@ -99,6 +104,7 @@ def create_authenticated_session():
     Create a requests.Session configured with HTTP Basic Auth for URS.
     Using Basic Auth across redirects is the recommended and most reliable
     method for GES DISC/Earthdata programmatic access.
+    Adds retry/backoff to reduce transient timeouts and 5xx/429 errors.
     """
     session = requests.Session()
     # Resolve credentials (env/args/netrc)
@@ -107,4 +113,26 @@ def create_authenticated_session():
     session.auth = requests.auth.HTTPBasicAuth(username, password)
     # Allow requests to send credentials when redirected to URS
     session.max_redirects = 10
+
+    # Robust retries for GES DISC endpoints
+    if Retry is not None:
+        retry = Retry(
+            total=5,
+            connect=5,
+            read=5,
+            status=5,
+            backoff_factor=1.5,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=frozenset(["GET", "HEAD"]),
+            respect_retry_after_header=True,
+        )
+        adapter = HTTPAdapter(max_retries=retry, pool_maxsize=10)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
+    # Set a descriptive User-Agent (helps with server-side diagnostics)
+    session.headers.update({
+        "User-Agent": "TerraClime Planner/1.0 (+https://spaceapps.nasa.gov/)"
+    })
+
     return session
